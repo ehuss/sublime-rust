@@ -163,37 +163,16 @@ class TestSyntaxCheck(TestBase):
             self._with_open_file(path, self._test_messages, setups=setups)
 
     def _test_messages(self, view, setups=None, extra_paths=()):
-        # Capture all calls to Sublime to add phantoms and regions.
-        # These are keyed by filename.
-        phantoms = {}
-        view_regions = {}
-
-        def collect_phantoms(v, key, region, content, layout, on_navigate):
-            ps = phantoms.setdefault(v.file_name(), [])
-            ps.append((region, content))
-
-        def collect_regions(v, key, regions, scope, icon, flags):
-            rs = view_regions.setdefault(v.file_name(), [])
-            rs.extend(regions)
-
-        m = plugin.rust.messages
-        orig_add_phantom = m._sublime_add_phantom
-        orig_add_regions = m._sublime_add_regions
-        m._sublime_add_phantom = collect_phantoms
-        m._sublime_add_regions = collect_regions
-
-        # Trigger the generation of messages.
-        try:
+        with UiIntercept() as ui:
+            # Trigger the generation of messages.
             for setup in itertools.product(*setups):
                 with contextlib.ExitStack() as stack:
                     for ctx in setup:
                         stack.enter_context(ctx)
-                    self._test_messages2(view, phantoms, view_regions, extra_paths, setup)
-                phantoms.clear()
-                view_regions.clear()
-        finally:
-            m._sublime_add_phantom = orig_add_phantom
-            m._sublime_add_regions = orig_add_regions
+                    self._test_messages2(view, ui.phantoms, ui.view_regions,
+                        extra_paths, setup)
+                ui.phantoms.clear()
+                ui.view_regions.clear()
 
     def _test_messages2(self, view, phantoms, regions, extra_paths, setup):
         e = plugin.SyntaxCheckPlugin.RustSyntaxCheckEvent()
@@ -272,10 +251,10 @@ class TestSyntaxCheck(TestBase):
                 # This is a region-only highlight.
                 continue
             if restriction_check(emsg_info['restrictions']):
-                for i, (region, content) in enumerate(phantoms):
-                    content = unescape(content)
+                for i, (pinfo) in enumerate(phantoms):
+                    content = unescape(pinfo['content'])
                     # Phantom regions only apply to the last row.
-                    r_row, _ = view.rowcol(region.end())
+                    r_row, _ = view.rowcol(pinfo['region'].end())
                     emsg_row, _ = view.rowcol(emsg_info['end'])
                     if r_row == emsg_row:
                         emsg = emsg_info['message']

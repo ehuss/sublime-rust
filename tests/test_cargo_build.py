@@ -344,7 +344,7 @@ class TestCargoBuild(TestBase):
         msgs = messages.WINDOW_MESSAGES[window.id()]
         path_msgs = msgs['paths'][filename]
         for msg in path_msgs:
-            if re.search(pattern, msg['text']):
+            if re.search(pattern, msg.text):
                 break
         else:
             raise AssertionError('Failed to find %r' % pattern)

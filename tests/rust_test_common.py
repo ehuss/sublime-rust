@@ -171,6 +171,8 @@ class TestBase(unittest.TestCase):
         finally:
             if view.window():
                 window.focus_view(view)
+                if view.is_dirty():
+                    view.run_command('revert')
                 window.run_command('close_file')
 
     def _cargo_clean(self, view_or_path):
@@ -215,3 +217,43 @@ class AlteredSetting(object):
 
     def __str__(self):
         return '%s=%s' % (self.name, self.value)
+
+
+class UiIntercept(object):
+
+    """Context manager that assists with mocking some Sublime UI components."""
+
+    def __init__(self, passthrough=False):
+        self.passthrough = passthrough
+
+    def __enter__(self):
+        self.phantoms = {}
+        self.view_regions = {}
+
+        def collect_phantoms(v, key, region, content, layout, on_navigate):
+            ps = self.phantoms.setdefault(v.file_name(), [])
+            ps.append({
+                'region': region,
+                'content': content,
+                'on_navigate': on_navigate,
+            })
+            if self.passthrough:
+                self.orig_add_phantom(v, key, region, content, layout, on_navigate)
+
+        def collect_regions(v, key, regions, scope, icon, flags):
+            rs = self.view_regions.setdefault(v.file_name(), [])
+            rs.extend(regions)
+            if self.passthrough:
+                self.orig_add_regions(v, key, regions, scope, icon, flags)
+
+        m = plugin.rust.messages
+        self.orig_add_phantom = m._sublime_add_phantom
+        self.orig_add_regions = m._sublime_add_regions
+        m._sublime_add_phantom = collect_phantoms
+        m._sublime_add_regions = collect_regions
+        return self
+
+    def __exit__(self, type, value, traceback):
+        m = plugin.rust.messages
+        m._sublime_add_phantom = self.orig_add_phantom
+        m._sublime_add_regions = self.orig_add_regions
