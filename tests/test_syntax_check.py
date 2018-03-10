@@ -121,6 +121,8 @@ class TestSyntaxCheck(TestBase):
             'workspace/workspace2/src/somemod.rs',
         ]
 
+        self._override_setting('rust_message_theme', 'test')
+
         # Configure different permutations of settings to test for each file.
         methods = ['no-trans']
         if semver.match(self.rustc_version, '>=1.16.0'):
@@ -151,7 +153,7 @@ class TestSyntaxCheck(TestBase):
             self._with_open_file(paths[0], self._test_messages,
                 setups=setups + extra_setups, extra_paths=paths[1:])
 
-    def test_clippy_messages(self):
+    def X_test_clippy_messages(self):
         """Test clippy messages."""
         if self._skip_clippy():
             return
@@ -166,15 +168,17 @@ class TestSyntaxCheck(TestBase):
         with UiIntercept() as ui:
             # Trigger the generation of messages.
             for setup in itertools.product(*setups):
+                path_messages = themes.THEMES['test'].path_messages
+                path_messages.clear()
                 with contextlib.ExitStack() as stack:
                     for ctx in setup:
                         stack.enter_context(ctx)
-                    self._test_messages2(view, ui.phantoms, ui.view_regions,
+                    self._test_messages2(view, path_messages, ui.view_regions,
                         extra_paths, setup)
-                ui.phantoms.clear()
+                ui.phantoms.clear() #XXX
                 ui.view_regions.clear()
 
-    def _test_messages2(self, view, phantoms, regions, extra_paths, setup):
+    def _test_messages2(self, view, path_messages, regions, extra_paths, setup):
         e = plugin.SyntaxCheckPlugin.RustSyntaxCheckEvent()
         # Force Cargo to recompile.
         self._cargo_clean(view)
@@ -182,19 +186,19 @@ class TestSyntaxCheck(TestBase):
         e.on_post_save(view)
         # Wait for it to finish.
         self._get_rust_thread().join()
-        self._test_messages_check(view, phantoms, regions, setup)
+        self._test_messages_check(view, path_messages, regions, setup)
 
         def extra_check(view):
             # on_load is disabled during tests, do it manually.
             plugin.rust.messages.show_messages_for_view(view)
-            self._test_messages_check(view, phantoms, regions, setup)
+            self._test_messages_check(view, path_messages, regions, setup)
 
         # Load any other views that are expected to have messages.
         for path in extra_paths:
             self._with_open_file(path, extra_check)
 
-    def _test_messages_check(self, view, phantoms, regions, setup):
-        phantoms = phantoms.get(view.file_name(), [])
+    def _test_messages_check(self, view, path_messages, regions, setup):
+        actual_messages = path_messages.get(view.file_name(), [])
         regions = regions.get(view.file_name(), [])
         expected_messages = self._collect_expected_regions(view)
 
@@ -245,35 +249,44 @@ class TestSyntaxCheck(TestBase):
 
         region_set = {(r.begin(), r.end()) for r in regions}
 
-        # Check phantoms.
+        print('expected_messages=')
+        pprint(expected_messages)
+        print('actual_messages=')
+        pprint(actual_messages)
+
+        # Check that correct messages were displayed.
         for emsg_info in expected_messages:
             if not emsg_info['message']:
                 # This is a region-only highlight.
                 continue
             if restriction_check(emsg_info['restrictions']):
-                for i, (pinfo) in enumerate(phantoms):
-                    content = unescape(pinfo['content'])
-                    # Phantom regions only apply to the last row.
-                    r_row, _ = view.rowcol(pinfo['region'].end())
+                print('expected message passed check: %r' % (emsg_info,))
+                for i, msg in enumerate(actual_messages):
                     emsg_row, _ = view.rowcol(emsg_info['end'])
-                    if r_row == emsg_row:
+                    if msg.span:
+                        actual_row = msg.lineno()
+                    else:
+                        # Last line of view.
+                        actual_row = view.rowcol(view.size())[0]
+                    if actual_row == emsg_row:
                         emsg = emsg_info['message']
+                        actual_text = msg.text if msg.text else unescape(msg.minihtml_text)
                         if emsg.startswith('/') and emsg.endswith('/'):
-                            match = bool(re.search(emsg[1:-1], content, re.S))
+                            match = bool(re.search(emsg[1:-1], actual_text, re.S))
                         else:
-                            match = emsg in content
+                            match = emsg in actual_text
                         if match:
-                            self.assertIn(emsg_info['level'], content)
+                            self.assertEqual(emsg_info['level'], msg.level)
                             break
                 else:
-                    raise AssertionError('Did not find expected message "%s:%s" for region %r:%r for file %r\nsetup=%s\nversion=%s\nAvailable phantoms=%r' % (
+                    raise AssertionError('Did not find expected message "%s:%s" for region %r:%r for file %r\nsetup=%s\nversion=%s\nAvailable messages=%r' % (
                         emsg_info['level'], emsg_info['message'],
                         emsg_info['begin'], emsg_info['end'],
-                        view.file_name(), _setup_debug(setup), self.rustc_version, phantoms))
-                del phantoms[i]
-        if len(phantoms):
+                        view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
+                del actual_messages[i]
+        if len(actual_messages):
             raise AssertionError('Got extra phantoms for %r\nsetup=%s\nversion=%s\n%r' % (
-                view.file_name(), _setup_debug(setup), self.rustc_version, phantoms))
+                view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
 
         # Check regions.
         found_regions = set()

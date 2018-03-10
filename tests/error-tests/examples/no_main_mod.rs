@@ -5,3 +5,4 @@
 // of encompassing the entire function).
 }/*END*/
 // ~NOTE(rust_syntax_checking_include_tests=False) here is a function named 'main'
+// ~MSG(rust_syntax_checking_include_tests=False) See Primary: no_main.rs

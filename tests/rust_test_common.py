@@ -23,6 +23,7 @@ cargo_settings = plugin.rust.cargo_settings
 cargo_config = plugin.rust.cargo_config
 target_detect = plugin.rust.target_detect
 messages = plugin.rust.messages
+themes = plugin.rust.themes
 util = plugin.rust.util
 semver = plugin.rust.semver
 
@@ -79,6 +80,8 @@ class TestBase(unittest.TestCase):
         window.create_output_panel(plugin.rust.opanel.PANEL_NAME)
 
     def _override_setting(self, name, value):
+        """Tests can call this to override a Sublime setting, which will get
+        restored once the test is complete."""
         if name not in self._original_settings:
             if self.settings.has(name):
                 self._original_settings[name] = self.settings.get(name)
