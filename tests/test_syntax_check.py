@@ -121,8 +121,6 @@ class TestSyntaxCheck(TestBase):
             'workspace/workspace2/src/somemod.rs',
         ]
 
-        self._override_setting('rust_message_theme', 'test')
-
         # Configure different permutations of settings to test for each file.
         methods = ['no-trans']
         if semver.match(self.rustc_version, '>=1.16.0'):
@@ -153,7 +151,7 @@ class TestSyntaxCheck(TestBase):
             self._with_open_file(paths[0], self._test_messages,
                 setups=setups + extra_setups, extra_paths=paths[1:])
 
-    def X_test_clippy_messages(self):
+    def test_clippy_messages(self):
         """Test clippy messages."""
         if self._skip_clippy():
             return
@@ -165,6 +163,7 @@ class TestSyntaxCheck(TestBase):
             self._with_open_file(path, self._test_messages, setups=setups)
 
     def _test_messages(self, view, setups=None, extra_paths=()):
+        self._override_setting('rust_message_theme', 'test')
         with UiIntercept() as ui:
             # Trigger the generation of messages.
             for setup in itertools.product(*setups):

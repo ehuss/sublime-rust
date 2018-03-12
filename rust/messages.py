@@ -257,38 +257,41 @@ def _draw_region_highlights(view, batches):
 def message_popup(view, point, hover_zone):
     """Displays a popup if there is a message at the given point."""
     paths = WINDOW_MESSAGES.get(view.window().id(), {}).get('paths', {})
-    msgs = paths.get(view.file_name(), [])
+    batches = paths.get(view.file_name(), [])
 
     if hover_zone == sublime.HOVER_GUTTER:
         # Collect all messages on this line.
         row = view.rowcol(point)[0]
 
-        def filter_row(msg):
-            span = msg.span
+        def filter_row(batch):
+            span = batch.first().span
             if span:
                 return row >= span[0][0] and row <= span[1][0]
             else:
                 last_row = view.rowcol(view.size())[0]
                 return row == last_row
 
-        msgs = filter(filter_row, msgs)
+        batches = filter(filter_row, batches)
     else:
         # Collect all messages covering this point.
-        def filter_point(msg):
-            span = msg.span
-            if span:
-                start_pt = view.text_point(*span[0])
-                end_pt = view.text_point(*span[1])
-                return point >= start_pt and point <= end_pt
-            else:
-                return point == view.size()
+        def filter_point(batch):
+            for msg in batch:
+                if msg.span:
+                    start_pt = view.text_point(*msg.span[0])
+                    end_pt = view.text_point(*msg.span[1])
+                    if point >= start_pt and point <= end_pt:
+                        return True
+                elif point == view.size():
+                    return True
+            return False
 
-        msgs = filter(filter_point, msgs)
+        batches = filter(filter_point, batches)
 
-    if msgs:
-        # XXX TODO
-        to_show = '\n'.join(msg.minihtml_text for msg in msgs if msg.minihtml_text)
-        minihtml = _wrap_css(to_show, extra_css=POPUP_CSS)
+    if batches:
+        theme = themes.THEMES[util.get_setting('rust_message_theme', 'clear')]
+        minihtml = '\n'.join(theme.render(batch, for_popup=True) for batch in batches)
+        if not minihtml:
+            return
         on_nav = functools.partial(_click_handler, view, hide_popup=True)
         max_width = view.em_width() * 79
         view.show_popup(minihtml, sublime.COOPERATE_WITH_AUTO_COMPLETE,
@@ -632,11 +635,12 @@ def list_messages(window):
         return
     panel_items = []
     jump_to = []
-    for path_idx, (path, msgs) in enumerate(win_info['paths'].items()):
-        for msg_idx, message in enumerate(msgs):
-            if not message.primary:
+    for path_idx, (path, batches) in enumerate(win_info['paths'].items()):
+        for batch_idx, batch in enumerate(batches):
+            if not isinstance(batch, PrimaryBatch):
                 continue
-            jump_to.append((path_idx, msg_idx))
+            message = batch.primary_message
+            jump_to.append((path_idx, batch_idx))
             if message.span:
                 path_label = '%s:%s' % (
                     _relative_path(window, path),
@@ -918,7 +922,7 @@ def _collect_rust_messages(window, base_path, info, target_path,
             # should replace the span.
             child = add_additional(span, None, 'help')
             replacement_template = util.multiline_fix("""
-                <a href="replace:%s" class="rust-button">Accept Replacement:</a> %s
+                <div class="rust-replacement"><a href="replace:%s" class="rust-button">Accept Replacement:</a> %s</div>
             """)
             child.minihtml_text = replacement_template % (
                 urllib.parse.urlencode({

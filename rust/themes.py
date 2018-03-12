@@ -21,10 +21,6 @@ class Theme:
 
     # return themes.HTML_TEMPLATE.format(
     #     content=content,
-    #     error_color=util.get_setting('rust_syntax_error_color', 'var(--redish)'),
-    #     warning_color=util.get_setting('rust_syntax_warning_color', 'var(--yellowish)'),
-    #     note_color=util.get_setting('rust_syntax_note_color', 'var(--greenish)'),
-    #     help_color=util.get_setting('rust_syntax_help_color', 'var(--bluish)'),
     #     style=theme_style,
     #     extra_css=extra_css,
     # )
@@ -36,34 +32,110 @@ class Theme:
 
 class ClearTheme(Theme):
 
-    def render(self, batch, for_popup=False):
-        pass
-
-
-class SolidTheme(Theme):
-
-    CHILD_TMPL = util.multiline_fix("""
-        <div class="rust-block rust-{level}">{icon}&nbsp;{text}</div>
+    TMPL = util.multiline_fix("""
+        <style>
+            span {{
+                font-family: monospace;
+            }}
+            .rust-error {{
+                color: {error_color};
+            }}
+            .rust-warning {{
+                color: {warning_color};
+            }}
+            .rust-note {{
+                color: {note_color};
+            }}
+            .rust-help {{
+                color: {help_color};
+            }}
+            .rust-button {{
+                background-color: var(--background);
+                color: var(--bluish);
+                text-decoration: none;
+                border-radius: 1rem;
+                padding: 0.2rem 0.5rem;
+                border: 1px solid var(--bluish);
+            }}
+            .rust-links {{
+                margin: 0.4rem 0rem;
+            }}
+            a {{
+                text-decoration: inherit;
+                padding: 0.35rem 0.5rem 0.45rem 0.5rem;
+                position: relative;
+                font-weight: bold;
+            }}
+            {extra_css}
+        </style>
+        <body id="rust-message">
+        {content}
+        </body>
     """)
 
-    PRIMARY_MSG_TMPL = util.multiline_fix("""
-        <div class="rust-block rust-{level}">
-            {icon}&nbsp;{text}{help_link} <a class="close-link" href="hide">\xD7</a>
-            {children}
-            {links}
-        </div>
-    """)
-
-    SECONDARY_MSG_TMPL = util.multiline_fix("""
-        <div class="rust-secondary-block rust-{level}">
-            {children}
-            {links}
+    MSG_TMPL = util.multiline_fix("""
+        <div class="rust-{level}">
+            {level_text}{text}{help_link}{close_link}
         </div>
     """)
 
     LINK_TMPL = util.multiline_fix("""
-        <div class="rust-links"><a href="{url}" class="rust-button">{text} {path}</a></div>
+        <div class="rust-links">
+            <a href="{url}" class="rust-button">{text} {path}</a>
+        </div>
     """)
+
+    def render(self, batch, for_popup=False):
+        if for_popup:
+            extra_css = POPUP_CSS
+        else:
+            extra_css = ''
+
+        msgs = []
+        last_level = None
+        for i, msg in enumerate(batch):
+            text = msg.escaped_text('')
+            if not text:
+                continue
+            if msg.level == last_level:
+                level_text = '&nbsp;' * (len(msg.level) + 2)
+            else:
+                level_text = '%s: ' % (msg.level,)
+            last_level = msg.level
+            if i == 0:
+                # Only show close link on first message of a batch.
+                close_link = '<a class="close-link" href="hide">\xD7</a>'
+            else:
+                close_link = ''
+            msgs.append(self.MSG_TMPL.format(
+                level=msg.level,
+                level_text=level_text,
+                text=text,
+                help_link=_help_link(msg.code),
+                close_link=close_link,
+            ))
+
+        if isinstance(batch, PrimaryBatch):
+            for url, path in batch.child_links:
+                msgs.append(self.LINK_TMPL.format(
+                    url=url, text='See Also:', path=path))
+        else:
+            if batch.back_link:
+                msgs.append(self.LINK_TMPL.format(
+                    url=batch.back_link[0],
+                    text='See Primary:',
+                    path=batch.back_link[1]))
+
+        return self.TMPL.format(
+            error_color=util.get_setting('rust_syntax_error_color', 'var(--redish)'),
+            warning_color=util.get_setting('rust_syntax_warning_color', 'var(--yellowish)'),
+            note_color=util.get_setting('rust_syntax_note_color', 'var(--greenish)'),
+            help_color=util.get_setting('rust_syntax_help_color', 'var(--bluish)'),
+            content=''.join(msgs),
+            extra_css=extra_css)
+
+
+class SolidTheme(Theme):
 
     TMPL = util.multiline_fix("""
         <style>
@@ -121,6 +193,29 @@ class SolidTheme(Theme):
         <body id="rust-message">
         {content}
         </body>
+    """)
+
+    PRIMARY_MSG_TMPL = util.multiline_fix("""
+        <div class="rust-block rust-{level}">
+            {icon}&nbsp;{text}{help_link} <a class="close-link" href="hide">\xD7</a>
+            {children}
+            {links}
+        </div>
+    """)
+
+    SECONDARY_MSG_TMPL = util.multiline_fix("""
+        <div class="rust-secondary-block rust-{level}">
+            {children}
+            {links}
+        </div>
+    """)
+
+    CHILD_TMPL = util.multiline_fix("""
+        <div class="rust-block rust-{level}">{icon}&nbsp;{text}</div>
+    """)
+
+    LINK_TMPL = util.multiline_fix("""
+        <div class="rust-links"><a href="{url}" class="rust-button">{text} {path}</a></div>
     """)
 
     def render(self, batch, for_popup=False):
@@ -227,70 +322,4 @@ THEMES = {
     'clear': ClearTheme(),
     'solid': SolidTheme(),
     'test': TestTheme(),
-}
-
-HTML_TEMPLATE = """
-<style>
-    span {{
-        font-family: monospace;
-    }}
-    .rust-error {{
-        color: {error_color};
-    }}
-    .rust-warning {{
-        color: {warning_color};
-    }}
-    .rust-note {{
-        color: {note_color};
-    }}
-    .rust-help {{
-        color: {help_color};
-    }}
-    {style}
-    {extra_css}
-</style>
-<body id="rust-message">
-{content}
-</body>
-"""
-
-CSS_STYLES = {
-    'clear': """
-        .rust-link {
-            background-color: var(--background);
-            color: var(--bluish);
-            text-decoration: none;
-            border-radius: 1rem;
-            padding: 0.2rem 0.5rem;
-            border: 1px solid var(--bluish);
-        }
-        .rust-links {
-            margin: 0.4rem 0rem;
-        }
-        a {
-            text-decoration: inherit;
-            padding: 0.35rem 0.5rem 0.45rem 0.5rem;
-            position: relative;
-            font-weight: bold;
-        }
-    """,
-    'solid': """
-        .rust-link {
-            background-color: var(--background);
-            color: var(--bluish);
-            text-decoration: none;
-            border-radius: 1rem;
-            padding: 0.2rem 0.5rem;
-            border: 1px solid var(--bluish);
-        }
-        .rust-links {
-            margin: 0.4rem 0rem;
-        }
-        a {
-            text-decoration: inherit;
-            padding: 0.35rem 0.5rem 0.45rem 0.5rem;
-            position: relative;
-            font-weight: bold;
-        }
-    """,
 }

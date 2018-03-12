@@ -31,7 +31,7 @@ class TestClickHandler(TestBase):
             expected = ((11, '    &1 as &Send;'),
                         (15, '    Box::new(1) as Box<Send>;'))
             for phantom, (lineno, expected_line) in zip(phantoms, expected):
-                url = re.search(r'<a .*href="([^"]+)"',
+                url = re.search(r'<a .*href="(replace:[^"]+)"',
                     phantom['content']).group(1)
                 phantom['on_navigate'](url)
                 self.assertEqual(get_line(lineno), expected_line)
