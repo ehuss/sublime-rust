@@ -50,10 +50,9 @@ class ClearTheme(Theme):
                 color: {help_color};
             }}
             .rust-button {{
-                background-color: var(--background);
                 color: var(--bluish);
                 text-decoration: none;
-                border-radius: 1rem;
+                border-radius: 0.3rem;
                 padding: 0.2rem 0.5rem;
                 border: 1px solid var(--bluish);
             }}
@@ -61,11 +60,15 @@ class ClearTheme(Theme):
                 margin: 0.4rem 0rem;
             }}
             a {{
-                text-decoration: inherit;
+                text-decoration: none;
                 padding: 0.35rem 0.5rem 0.45rem 0.5rem;
                 position: relative;
                 font-weight: bold;
             }}
+            .rust-replacement {{
+                padding: 0.5rem 0 0.5rem 2rem;
+            }}
+
             {extra_css}
         </style>
         <body id="rust-message">
@@ -97,10 +100,13 @@ class ClearTheme(Theme):
             text = msg.escaped_text('')
             if not text:
                 continue
-            if msg.level == last_level:
-                level_text = '&nbsp;' * (len(msg.level) + 2)
+            if msg.minihtml_text:
+                level_text = ''
             else:
-                level_text = '%s: ' % (msg.level,)
+                if msg.level == last_level:
+                    level_text = '&nbsp;' * (len(msg.level) + 2)
+                else:
+                    level_text = '%s: ' % (msg.level,)
             last_level = msg.level
             if i == 0:
                 # Only show close link on first message of a batch.
@@ -187,6 +193,11 @@ class SolidTheme(Theme):
                 color: #ffffff;
                 text-decoration: none;
             }}
+
+            .rust-replacement {{
+                display: inline;
+            }}
+
             {extra_css}
 
         </style>
