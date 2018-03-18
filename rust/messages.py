@@ -294,7 +294,7 @@ def message_popup(view, point, hover_zone):
             return
         on_nav = functools.partial(_click_handler, view, hide_popup=True)
         max_width = view.em_width() * 79
-        view.show_popup(minihtml, sublime.COOPERATE_WITH_AUTO_COMPLETE,
+        _sublime_show_popup(view, minihtml, sublime.COOPERATE_WITH_AUTO_COMPLETE,
             point, max_width=max_width, on_navigate=on_nav)
 
 
@@ -363,7 +363,7 @@ def _show_phantom(view, batch):
     content = theme.render(batch)
     if not content:
         return
-    print(content)
+    # print(content)
 
     _sublime_add_phantom(
         view,
@@ -387,6 +387,11 @@ def _sublime_add_phantom(view, key, region, content, layout, on_navigate):
 def _sublime_add_regions(view, key, regions, scope, icon, flags):
     """Pulled out to assist testing."""
     view.add_regions(key, regions, scope, icon, flags)
+
+
+def _sublime_show_popup(view, content, *args, **kwargs):
+    """Pulled out to assist testing."""
+    view.show_popup(content, *args, **kwargs)
 
 
 def _sort_messages(window):

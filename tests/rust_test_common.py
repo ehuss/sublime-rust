@@ -232,6 +232,24 @@ class UiIntercept(object):
     def __enter__(self):
         self.phantoms = {}
         self.view_regions = {}
+        self.popups = {}
+
+        def collect_popups(v, content, flags=0, location=-1,
+                           max_width=None, max_height=None,
+                           on_navigate=None, on_hide=None):
+            ps = self.popups.setdefault(v.file_name(), [])
+            result = {'view': v,
+                      'content': content,
+                      'flags': flags,
+                      'location': location,
+                      'max_width': max_width,
+                      'max_height': max_height,
+                      'on_navigate': on_navigate,
+                      'on_hide': on_hide}
+            ps.append(result)
+            if self.passthrough:
+                filtered = {k: v for (k, v) in result.items() if v is not None}
+                self.orig_show_popup(**filtered)
 
         def collect_phantoms(v, key, region, content, layout, on_navigate):
             ps = self.phantoms.setdefault(v.file_name(), [])
@@ -252,11 +270,14 @@ class UiIntercept(object):
         m = plugin.rust.messages
         self.orig_add_phantom = m._sublime_add_phantom
         self.orig_add_regions = m._sublime_add_regions
+        self.orig_show_popup = m._sublime_show_popup
         m._sublime_add_phantom = collect_phantoms
         m._sublime_add_regions = collect_regions
+        m._sublime_show_popup = collect_popups
         return self
 
     def __exit__(self, type, value, traceback):
         m = plugin.rust.messages
         m._sublime_add_phantom = self.orig_add_phantom
         m._sublime_add_regions = self.orig_add_regions
+        m._sublime_show_popup = self.orig_show_popup
