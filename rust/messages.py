@@ -831,7 +831,9 @@ def _collect_rust_messages(window, base_path, info, target_path,
             # Some of the messages are not very interesting, though.
             imsg = info['message']
             if not (imsg.startswith('aborting due to') or
-                    imsg.startswith('cannot continue')):
+                    imsg.startswith('cannot continue') or
+                    imsg.startswith('Some errors occurred') or
+                    imsg.startswith('For more information about')):
                 if target_path:
                     # Display at the bottom of the root path (like main.rs)
                     # for lack of a better place to put it.
