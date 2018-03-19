@@ -236,7 +236,7 @@ class SolidTheme(Theme):
             if not path:
                 return ''
             else:
-                return '<img src="res://%s">' % (path,)
+                return '<img src="res://%s" width="16" height="16">' % (path,)
 
         if for_popup:
             extra_css = POPUP_CSS
