@@ -202,7 +202,7 @@ def _draw_all_region_highlights(window):
 
 
 def _draw_region_highlights(view, batches):
-    if util.get_setting('rust_region_style', 'outline') == 'none':
+    if util.get_setting('rust_region_style') == 'none':
         return
 
     regions = {
@@ -289,7 +289,7 @@ def message_popup(view, point, hover_zone):
         batches = filter(filter_point, batches)
 
     if batches:
-        theme = themes.THEMES[util.get_setting('rust_message_theme', 'clear')]
+        theme = themes.THEMES[util.get_setting('rust_message_theme')]
         minihtml = '\n'.join(theme.render(batch, for_popup=True) for batch in batches)
         if not minihtml:
             return
@@ -340,7 +340,7 @@ def _accept_replace(view, mid, replacement):
 
 
 def _show_phantom(view, batch):
-    if util.get_setting('rust_phantom_style', 'normal') != 'normal':
+    if util.get_setting('rust_phantom_style') != 'normal':
         return
     if batch.hidden:
         return
@@ -360,7 +360,7 @@ def _show_phantom(view, batch):
         )
 
     # print('RENDERING BATCH for view %s' % (view.file_name(),))
-    theme = themes.THEMES[util.get_setting('rust_message_theme', 'clear')]
+    theme = themes.THEMES[util.get_setting('rust_message_theme')]
     content = theme.render(batch)
     if not content:
         return
@@ -779,7 +779,7 @@ def _collect_rust_messages(window, base_path, info, target_path,
     """
     # Include "notes" tied to errors, even if warnings are disabled.
     if (info['level'] != 'error' and
-        util.get_setting('rust_syntax_hide_warnings', False) and
+        util.get_setting('rust_syntax_hide_warnings') and
         not parent_info
        ):
         return

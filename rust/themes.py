@@ -133,10 +133,10 @@ class ClearTheme(Theme):
                     path=batch.back_link[1]))
 
         return self.TMPL.format(
-            error_color=util.get_setting('rust_syntax_error_color', 'var(--redish)'),
-            warning_color=util.get_setting('rust_syntax_warning_color', 'var(--yellowish)'),
-            note_color=util.get_setting('rust_syntax_note_color', 'var(--greenish)'),
-            help_color=util.get_setting('rust_syntax_help_color', 'var(--bluish)'),
+            error_color=util.get_setting('rust_syntax_error_color'),
+            warning_color=util.get_setting('rust_syntax_warning_color'),
+            note_color=util.get_setting('rust_syntax_note_color'),
+            help_color=util.get_setting('rust_syntax_help_color'),
             content=''.join(msgs),
             extra_css=extra_css)
 
