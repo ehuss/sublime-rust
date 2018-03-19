@@ -106,6 +106,7 @@ class Message:
         if '\n' in self.text:
             print("XXXXXXXXXXXXXXXXXXXX")
             print('Found newline in message: %r' % (self.text,))
+            print(self.path)
 
         def escape_and_link(i_txt):
             i, txt = i_txt
@@ -358,7 +359,7 @@ def _show_phantom(view, batch):
             region.end()
         )
 
-    print('RENDERING BATCH for view %s' % (view.file_name(),))
+    # print('RENDERING BATCH for view %s' % (view.file_name(),))
     theme = themes.THEMES[util.get_setting('rust_message_theme', 'clear')]
     content = theme.render(batch)
     if not content:
@@ -952,8 +953,8 @@ def _batch_and_cross_link(primary_message):
         if msg.span:
             return 'file:///%s:%s:%s' % (
                 msg.path.replace('\\', '/'),
-                msg.span[0][0] + 1,
-                msg.span[0][1] + 1,
+                msg.span[1][0] + 1,
+                msg.span[1][1] + 1,
             )
         else:
             # Arbitrarily large line number to force it to the bottom of the
@@ -962,7 +963,7 @@ def _batch_and_cross_link(primary_message):
 
     # Group messages by line.
     primary_batch = PrimaryBatch(primary_message)
-    path_line_map = {}
+    path_line_map = collections.OrderedDict()
     key = (primary_message.path, primary_message.lineno())
     path_line_map[key] = primary_batch
     for msg in primary_message.children:
@@ -985,7 +986,7 @@ def _batch_and_cross_link(primary_message):
         else:
             filename = os.path.basename(other.path)
         if other.span:
-            return '%s:%s' % (filename, other.lineno(first=True) + 1,)
+            return '%s:%s' % (filename, other.lineno() + 1,)
         else:
             return filename
 

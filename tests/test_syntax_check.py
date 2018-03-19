@@ -114,6 +114,7 @@ class TestSyntaxCheck(TestBase):
             ('error-tests/tests/error_across_mod.rs', 'error-tests/tests/error_across_mod_f.rs'),
             'error-tests/tests/derive-error.rs',
             'error-tests/tests/test_new_lifetime_message.rs',
+            'error-tests/tests/method-ambig-two-traits-with-default-method.rs',
             # Workspace tests.
             'workspace/workspace1/src/lib.rs',
             'workspace/workspace1/src/anothermod/mod.rs',
