@@ -300,17 +300,12 @@ class TestTheme(Theme):
 
     def render(self, batch, for_popup=False):
         from .messages import Message
-        from pprint import pprint
-        print('RENDER path_messages starts with=')
-        pprint(self.path_messages)
         messages = self.path_messages.setdefault(batch.first().path, [])
         for msg in batch:
             # Region-only messages will get checked by the region-checking
             # code.
             if msg.text or msg.minihtml_text:
                 messages.append(msg)
-        print('PATH_MESSAGES=')
-        pprint(self.path_messages)
 
         # Create fake messages for the links to simplify the test code.
         def add_fake(msg, text):
@@ -327,6 +322,7 @@ class TestTheme(Theme):
         else:
             if batch.back_link:
                 add_fake(batch.first(), 'See Primary: ' + batch.back_link[1])
+        return None
 
 
 THEMES = {

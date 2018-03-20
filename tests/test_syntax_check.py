@@ -175,7 +175,6 @@ class TestSyntaxCheck(TestBase):
                         stack.enter_context(ctx)
                     self._test_messages2(view, path_messages, ui.view_regions,
                         extra_paths, setup)
-                ui.phantoms.clear() #XXX
                 ui.view_regions.clear()
 
     def _test_messages2(self, view, path_messages, regions, extra_paths, setup):
@@ -201,7 +200,85 @@ class TestSyntaxCheck(TestBase):
         actual_messages = path_messages.get(view.file_name(), [])
         regions = regions.get(view.file_name(), [])
         expected_messages = self._collect_expected_regions(view)
+        expected_messages = self._filter_expected_messages(view, expected_messages)
 
+        region_set = {(r.begin(), r.end()) for r in regions}
+
+        def check_actual_text(expected_text, actual_text):
+            if expected_text.startswith('/') and expected_text.endswith('/'):
+                return bool(re.search(expected_text[1:-1], actual_text, re.S))
+            else:
+                return expected_text in actual_text
+
+        # Check that correct messages were displayed.
+        for emsg_info in expected_messages:
+            if not emsg_info['message']:
+                # This is a region-only highlight.
+                continue
+            for i, msg in enumerate(actual_messages):
+                emsg_row, _ = view.rowcol(emsg_info['end'])
+                if msg.span:
+                    actual_row = msg.lineno()
+                else:
+                    # Last line of view.
+                    actual_row = view.rowcol(view.size())[0]
+                if actual_row == emsg_row:
+                    actual_text = msg.text if msg.text else unescape(msg.minihtml_text)
+                    if check_actual_text(emsg_info['message'], actual_text):
+                        self.assertEqual(emsg_info['level'], msg.level)
+                        break
+            else:
+                raise AssertionError('Did not find expected message "%s:%s" for region %r:%r for file %r\nsetup=%s\nversion=%s\nAvailable messages=%r' % (
+                    emsg_info['level'], emsg_info['message'],
+                    emsg_info['begin'], emsg_info['end'],
+                    view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
+            del actual_messages[i]
+        if len(actual_messages):
+            raise AssertionError('Got extra phantoms for %r\nsetup=%s\nversion=%s\n%r' % (
+                view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
+
+        # Check regions.
+        found_regions = set()
+        for emsg_info in expected_messages:
+            r = (emsg_info['begin'], emsg_info['end'])
+            if r in region_set:
+                found_regions.add(r)
+            else:
+                raise AssertionError('Did not find expected region %r,%r for file %r\nsetup=%s\nversion=%s\nActual regions=%r' % (
+                    emsg_info['begin'], emsg_info['end'], view.file_name(),
+                    _setup_debug(setup), self.rustc_version, region_set))
+        if len(region_set) != len(found_regions):
+            extra_regions = region_set - found_regions
+            raise AssertionError('Got extra regions for %r: %r' % (
+                view.file_name(), extra_regions))
+
+        # Verify that all themes render and contain the expected output.
+        theme_names = [x for x in themes.THEMES.keys() if x != 'test']
+        # First collect all the messages for all the themes.
+        theme_data = {}
+        for theme in theme_names:
+            batches = messages.WINDOW_MESSAGES.get(sublime.active_window().id(), {})\
+                                              .get('paths', {})\
+                                              .get(view.file_name(), [])
+            theme_data[theme] = output = []
+            for batch in batches:
+                output.append(themes.THEMES[theme].render(batch))
+        # Check that the message appears *somewhere*.  This is just a rough
+        # verification.
+        for emsg_info in expected_messages:
+            expected = emsg_info['message']
+            if not expected:
+                continue
+            for theme in theme_names:
+                actual = unescape(''.join(theme_data[theme]))
+                self.assertTrue(
+                    check_actual_text(expected, actual),
+                    'Failed in theme %r to find %r file %r\n%r' % (
+                        theme, expected, view.file_name(), actual)
+                )
+
+    def _filter_expected_messages(self, view, expected_messages):
+        """Removes messages that do not apply to the current setup."""
         # Refresh based on the toolchain used.
         window = sublime.active_window()
         manifest_path = util.find_cargo_manifest(view.file_name())
@@ -234,7 +311,8 @@ class TestSyntaxCheck(TestBase):
             else:
                 raise ValueError(check)
 
-        def restriction_check(restrictions):
+        def restriction_check(emsg_info):
+            restrictions = emsg_info['restrictions']
             if not restrictions:
                 return True
             ors = restrictions[1:-1].split(' OR ')
@@ -247,63 +325,7 @@ class TestSyntaxCheck(TestBase):
                     return True
             return False
 
-        region_set = {(r.begin(), r.end()) for r in regions}
-
-        print('expected_messages=')
-        pprint(expected_messages)
-        print('actual_messages=')
-        pprint(actual_messages)
-
-        # Check that correct messages were displayed.
-        for emsg_info in expected_messages:
-            if not emsg_info['message']:
-                # This is a region-only highlight.
-                continue
-            if restriction_check(emsg_info['restrictions']):
-                print('expected message passed check: %r' % (emsg_info,))
-                for i, msg in enumerate(actual_messages):
-                    emsg_row, _ = view.rowcol(emsg_info['end'])
-                    if msg.span:
-                        actual_row = msg.lineno()
-                    else:
-                        # Last line of view.
-                        actual_row = view.rowcol(view.size())[0]
-                    if actual_row == emsg_row:
-                        emsg = emsg_info['message']
-                        actual_text = msg.text if msg.text else unescape(msg.minihtml_text)
-                        if emsg.startswith('/') and emsg.endswith('/'):
-                            match = bool(re.search(emsg[1:-1], actual_text, re.S))
-                        else:
-                            match = emsg in actual_text
-                        if match:
-                            self.assertEqual(emsg_info['level'], msg.level)
-                            break
-                else:
-                    raise AssertionError('Did not find expected message "%s:%s" for region %r:%r for file %r\nsetup=%s\nversion=%s\nAvailable messages=%r' % (
-                        emsg_info['level'], emsg_info['message'],
-                        emsg_info['begin'], emsg_info['end'],
-                        view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
-                del actual_messages[i]
-        if len(actual_messages):
-            raise AssertionError('Got extra phantoms for %r\nsetup=%s\nversion=%s\n%r' % (
-                view.file_name(), _setup_debug(setup), self.rustc_version, actual_messages))
-
-        # Check regions.
-        found_regions = set()
-
-        for emsg_info in expected_messages:
-            if restriction_check(emsg_info['restrictions']):
-                r = (emsg_info['begin'], emsg_info['end'])
-                if r in region_set:
-                    found_regions.add(r)
-                else:
-                    raise AssertionError('Did not find expected region %r,%r for file %r\nsetup=%s\nversion=%s\nActual regions=%r' % (
-                        emsg_info['begin'], emsg_info['end'], view.file_name(),
-                        _setup_debug(setup), self.rustc_version, region_set))
-        if len(region_set) != len(found_regions):
-            extra_regions = region_set - found_regions
-            raise AssertionError('Got extra regions for %r: %r' % (
-                view.file_name(), extra_regions))
+        return list(filter(restriction_check, expected_messages))
 
     def _collect_expected_regions(self, view):
         """Scans through the view looking for the markup that tells us where
