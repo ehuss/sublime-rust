@@ -232,7 +232,11 @@ class SolidTheme(Theme):
     def render(self, batch, for_popup=False):
 
         def icon(level):
-            path = util.icon_path(level)
+            # minihtml does not support switching resolution for images based on DPI.
+            # Always use the @2x images, and downscale on 1x displays.  It doesn't
+            # look as good, but is close enough.
+            # See https://github.com/SublimeTextIssues/Core/issues/2228
+            path = util.icon_path(level, res=2)
             if not path:
                 return ''
             else:

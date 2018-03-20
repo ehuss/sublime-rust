@@ -147,7 +147,7 @@ def get_cargo_metadata(window, cwd, toolchain=None):
         return None
 
 
-def icon_path(level):
+def icon_path(level, res=None):
     """Return a path to a message-level icon."""
     if level not in ('error', 'warning', 'note', 'help', 'none'):
         return ''
@@ -156,5 +156,9 @@ def icon_path(level):
     if gutter_style == 'none':
         return ''
     else:
-        return 'Packages/%s/images/gutter/%s-%s.png' % (
-            package_name, gutter_style, level)
+        if res:
+            res_suffix = '@%ix' % (res,)
+        else:
+            res_suffix = ''
+        return 'Packages/%s/images/gutter/%s-%s%s.png' % (
+            package_name, gutter_style, level, res_suffix)
