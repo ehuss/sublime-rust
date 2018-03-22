@@ -46,6 +46,11 @@
     // "none" - Do not place icons in the gutter.
     "rust_gutter_style": "shape",
 
+    // Style for displaying inline messages.  Can be:
+    // "clear" - XXX
+    // "solid" - XXX
+    "rust_message_theme": "solid",
+
     // If your cargo project has several build targets, it's possible to specify mapping of
     // source code filenames to the target names to enable syntax checking.
     // "projects": {

@@ -4,5 +4,5 @@ macro_rules! example_bad_value {
 //         ^^^^ERR mismatched types
 //         ^^^^ERR expected (), found i32
 //         ^^^^NOTE expected type `()`
-//         ^^^^MSG macro-expansion-inside-2.rs:7
+//         ^^^^MSG See Also: macro-expansion-inside-2.rs:7
 }
