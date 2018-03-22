@@ -103,10 +103,6 @@ class Message:
             return self.minihtml_text
         if not self.text:
             return ''
-        if '\n' in self.text:
-            print("XXXXXXXXXXXXXXXXXXXX")
-            print('Found newline in message: %r' % (self.text,))
-            print(self.path)
 
         def escape_and_link(i_txt):
             i, txt = i_txt
@@ -359,12 +355,10 @@ def _show_phantom(view, batch):
             region.end()
         )
 
-    # print('RENDERING BATCH for view %s' % (view.file_name(),))
     theme = themes.THEMES[util.get_setting('rust_message_theme')]
     content = theme.render(batch)
     if not content:
         return
-    # print(content)
 
     _sublime_add_phantom(
         view,

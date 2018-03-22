@@ -19,12 +19,6 @@ class Theme:
 
     """Base class for themes."""
 
-    # return themes.HTML_TEMPLATE.format(
-    #     content=content,
-    #     style=theme_style,
-    #     extra_css=extra_css,
-    # )
-
     def render(self, batch, for_popup=False):
         """Return a minihtml string of the content in the message batch."""
         raise NotImplementedError()
@@ -32,11 +26,11 @@ class Theme:
 
 class ClearTheme(Theme):
 
+    """Theme with a clear background, and colors matching the user's color
+    scheme."""
+
     TMPL = util.multiline_fix("""
         <style>
-            span {{
-                font-family: monospace;
-            }}
             .rust-error {{
                 color: {error_color};
             }}
@@ -94,6 +88,7 @@ class ClearTheme(Theme):
         else:
             extra_css = ''
 
+        # Collect all the messages for this batch.
         msgs = []
         last_level = None
         for i, msg in enumerate(batch):
@@ -121,6 +116,7 @@ class ClearTheme(Theme):
                 close_link=close_link,
             ))
 
+        # Add cross-links.
         if isinstance(batch, PrimaryBatch):
             for url, path in batch.child_links:
                 msgs.append(self.LINK_TMPL.format(
@@ -143,11 +139,10 @@ class ClearTheme(Theme):
 
 class SolidTheme(Theme):
 
+    """Theme with a solid background color."""
+
     TMPL = util.multiline_fix("""
         <style>
-            span {{
-                font-family: monospace;
-            }}
             .rust-block {{
                 padding: 0.4rem 0.7rem;
                 border-radius: 0.3rem;
