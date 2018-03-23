@@ -3,9 +3,9 @@
 
 class MessageBatch:
 
-    """A set of messages that apply to the same line.
+    """Abstract base class for a set of messages that apply to the same line.
 
-    :ivar children:  List of additional messages, may be empty.
+    :ivar children: List of additional messages, may be empty.
     :ivar hidden: Boolean if this message should be displayed.
     """
 
@@ -15,12 +15,15 @@ class MessageBatch:
         self.children = []
 
     def __iter__(self):
+        """Iterates over all messages in the batch."""
         raise NotImplementedError()
 
     def path(self):
+        """Returns the file path of the batch."""
         raise NotImplementedError()
 
     def first(self):
+        """Returns the first message of the batch."""
         raise NotImplementedError()
 
     def dismiss(self):
@@ -44,9 +47,13 @@ class MessageBatch:
 
 class PrimaryBatch(MessageBatch):
 
-    """
-    :ivar primary_message:  The primary message object.
-    :ivar child_links: XXX
+    """A batch of messages with the primary message.
+
+    :ivar primary_message: The primary message object.
+    :ivar child_batches: List of `ChildBatch` batches associated with this
+        batch.
+    :ivar child_links: List of `(url, text)` tuples for links to child batches
+        that are "far away".
     """
 
     primary_message = None
@@ -57,16 +64,16 @@ class PrimaryBatch(MessageBatch):
         self.child_batches = []
         self.child_links = []
 
+    def __iter__(self):
+        yield self.primary_message
+        for child in self.children:
+            yield child
+
     def path(self):
         return self.primary_message.path
 
     def first(self):
         return self.primary_message
-
-    def __iter__(self):
-        yield self.primary_message
-        for child in self.children:
-            yield child
 
     def dismiss(self, window):
         self.hidden = True
@@ -77,8 +84,11 @@ class PrimaryBatch(MessageBatch):
 
 class ChildBatch(MessageBatch):
 
-    """
-    :ivar back_link: XXX
+    """A batch of messages that are associated with a primary message.
+
+    :ivar primary_batch: The `PrimaryBatch` this is associated with.
+    :ivar back_link: Tuple of `(url, text)` of the link to the primary batch
+        if it is "far away" (otherwise None).
     """
 
     primary_batch = None
@@ -88,15 +98,15 @@ class ChildBatch(MessageBatch):
         super(ChildBatch, self).__init__()
         self.primary_batch = primary_batch
 
+    def __iter__(self):
+        for child in self.children:
+            yield child
+
     def path(self):
         return self.children[0].path
 
     def first(self):
         return self.children[0]
-
-    def __iter__(self):
-        for child in self.children:
-            yield child
 
     def dismiss(self, window):
         self.hidden = True

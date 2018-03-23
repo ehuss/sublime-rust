@@ -178,6 +178,14 @@ class TestSyntaxCheck(TestBase):
                 ui.view_regions.clear()
 
     def _test_messages2(self, view, path_messages, regions, extra_paths, setup):
+        # Ensure that none of the extra_paths are already open, otherwise it
+        # causes problems with how the phantoms are collected.
+        for extra_path in extra_paths:
+            extra_view = view.window().find_open_file(
+                os.path.join(plugin_path, extra_path))
+            if extra_view:
+                extra_view.close()
+
         e = plugin.SyntaxCheckPlugin.RustSyntaxCheckEvent()
         # Force Cargo to recompile.
         self._cargo_clean(view)

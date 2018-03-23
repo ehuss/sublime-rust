@@ -28,13 +28,6 @@ WINDOW_MESSAGES = {}
 LINK_PATTERN = r'(https?://[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-zA-Z]{2,6}\b[-a-zA-Z0-9@:%_+.~#?&/=]*)'
 
 
-POPUP_CSS = """
-    body {
-        margin: 0.25em;
-    }
-"""
-
-
 class Message:
 
     """A diagnostic message.
@@ -60,7 +53,7 @@ class Message:
     :ivar primary: True if this is the primary message, False if a child.
     :ivar children: List of additional Message objects.  This is *not*
         recursive (children cannot have children).
-    :ivar parent: The primary message if this a child.
+    :ivar parent: The primary Message object if this a child.
     """
     region_key = None
     text = None
@@ -98,7 +91,12 @@ class Message:
             yield child
 
     def escaped_text(self, indent):
-        """XXX"""
+        """Returns the minihtml markup of the message.
+
+        :param indent: String used for indentation when the message spans
+            multiple lines.  Typically a series of &nbsp; to get correct
+            alignment.
+        """
         if self.minihtml_text:
             return self.minihtml_text
         if not self.text:
@@ -119,7 +117,9 @@ class Message:
         return ' '.join(map(escape_and_link, enumerate(parts)))
 
     def is_similar(self, other):
-        keys = ('path', 'span', 'level', 'text')
+        """Returns True if this message is essentially the same as the given
+        message.  Used for deduplication."""
+        keys = ('path', 'span', 'level', 'text', 'minihtml_text')
         for key in keys:
             if getattr(other, key) != getattr(self, key):
                 return False
@@ -149,6 +149,7 @@ class Message:
 
 
 def clear_messages(window):
+    """Remove all messages for the given window."""
     for path, batches in WINDOW_MESSAGES.pop(window.id(), {})\
                                         .get('paths', {})\
                                         .items():
@@ -161,6 +162,7 @@ def clear_messages(window):
 
 
 def clear_all_messages():
+    """Remove all messages in all windows."""
     for window in sublime.windows():
         if window.id() in WINDOW_MESSAGES:
             clear_messages(window)
@@ -217,29 +219,18 @@ def _draw_region_highlights(view, batches):
                 msg.level = 'error'
             regions[msg.level].append((msg.region_key, region))
 
-    # XXX remove
-    # Remove lower-level regions that are identical to higher-level regions.
-    # def filter_out(to_filter, to_check):
-    #     def check_in(region):
-    #         for r in regions[to_check]:
-    #             if r == region:
-    #                 return False
-    #         return True
-    #     regions[to_filter] = list(filter(check_in, regions[to_filter]))
-    # filter_out('help', 'note')
-    # filter_out('help', 'warning')
-    # filter_out('help', 'error')
-    # filter_out('note', 'warning')
-    # filter_out('note', 'error')
-    # filter_out('warning', 'error')
-
     # Do this in reverse order so that errors show on-top.
     for level in ['help', 'note', 'warning', 'error']:
-        # Unfortunately you cannot specify colors, but instead scopes as
-        # defined in the color theme.  If the scope is not defined, then it
-        # will show up as foreground color (white in dark themes).  I just use
-        # "info" as an undefined scope (empty string will remove regions).
-        # "invalid" will typically show up as red.
+        # Use scope names from color themes to drive the color of the outline.
+        # 'invalid' typically is red.  We use 'info' for all other levels, which
+        # is usually not defined in any color theme, and will end up showing as
+        # the foreground color (white in dark themes).
+        #
+        # TODO: Consider using the new magic scope names added in build 3148
+        # to manually specify colors:
+        #     region.redish, region.orangish, region.yellowish,
+        #     region.greenish, region.bluish, region.purplish and
+        #     region.pinkish
         if level == 'error':
             scope = 'invalid'
         else:
@@ -322,7 +313,8 @@ def _accept_replace(view, mid, replacement):
                              .get('paths', {})\
                              .get(view.file_name(), [])
     batch, msg = batch_and_msg()
-    # Retrieve the updated region from sublime.
+    # Retrieve the updated region from Sublime (since it may have changed
+    # since the messages were generated).
     regions = view.get_regions(msg.region_key)
     if not regions:
         print('Rust Enhanced internal error: Could not find region for suggestion.')
@@ -811,6 +803,10 @@ def _collect_rust_messages(window, base_path, info, target_path,
         else:
             child.path = make_span_path(span)
             child.span = make_span_region(span)
+            if any(map(lambda m: m.is_similar(child), message.children)):
+                # Duplicate message, skip.  This happens with some of the
+                # macro help messages.
+                return child
             child.parent = message
             message.children.append(child)
         return child

@@ -10,7 +10,7 @@ macro_rules! example_bad_syntax {
 //                ^MSG(>=1.20.0) See Also: macro-expansion-inside-1.rs:6
 //                ^ERR /expected one of .*, found `:`/
 //                ^ERR(>=1.18.0) expected one of
-//                ^MSG(>=1.18.0) See Also: macro-expansion-inside-1.rs:6
+//                ^MSG(>=1.20.0) See Also: macro-expansion-inside-1.rs:6
         }
     }
 }

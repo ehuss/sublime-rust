@@ -11,11 +11,15 @@
 // This test exercises a message with multiple "far away" child messages.
 
 trait Foo { fn method(&self) {} }
-//          ^^^^^^^^^^^^^^^^NOTE candidate #1
-//          ^^^^^^^^^^^^^^^^MSG See Primary: ↓:24
+//          ^^^^^^^^^^^^^^^^^^^NOTE(<1.24.0) candidate #1
+//          ^^^^^^^^^^^^^^^^^^^MSG(<1.24.0) See Primary: ↓:28
+//          ^^^^^^^^^^^^^^^^NOTE(>=1.24.0) candidate #1
+//          ^^^^^^^^^^^^^^^^MSG(>=1.24.0) See Primary: ↓:28
 trait Bar { fn method(&self) {} }
-//          ^^^^^^^^^^^^^^^^NOTE candidate #2
-//          ^^^^^^^^^^^^^^^^MSG See Primary: ↓:24
+//          ^^^^^^^^^^^^^^^^^^^NOTE(<1.24.0) candidate #2
+//          ^^^^^^^^^^^^^^^^^^^MSG(<1.24.0) See Primary: ↓:28
+//          ^^^^^^^^^^^^^^^^NOTE(>=1.24.0) candidate #2
+//          ^^^^^^^^^^^^^^^^MSG(>=1.24.0) See Primary: ↓:28
 
 impl Foo for usize {}
 impl Bar for usize {}
@@ -25,5 +29,5 @@ fn main() {
 //          ^^^^^^ERR multiple applicable items
 //          ^^^^^^ERR multiple `method` found
 //          ^^^^^^MSG See Also: ↑:13
-//          ^^^^^^MSG See Also: ↑:16
+//          ^^^^^^MSG See Also: ↑:18
 }

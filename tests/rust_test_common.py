@@ -73,6 +73,11 @@ class TestBase(unittest.TestCase):
         self.settings = sublime.load_settings('RustEnhanced.sublime-settings')
         self._override_setting('show_panel_on_build', False)
         self._override_setting('cargo_build', {})
+        # Disable incremental compilation (first enabled in 1.24).  It slows
+        # down the tests.
+        self._override_setting('rust_env', {
+            'CARGO_INCREMENTAL': '0',
+        })
 
         # Clear any state.
         messages.clear_messages(window)

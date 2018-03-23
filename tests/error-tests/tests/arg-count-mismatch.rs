@@ -22,4 +22,5 @@
 fn main() { let i: (); i = f(); }
 //                         ^^^ERR this function takes 1 parameter
 //                         ^^^ERR expected 1 parameter
-//                         ^^^MSG See Also: ↑:13
+//                         ^^^MSG(<1.24.0-beta) See Also: ↑:16
+//                         ^^^MSG(>=1.24.0-beta) See Also: ↑:13
