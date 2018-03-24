@@ -57,12 +57,9 @@ class ClearTheme(Theme):
                 padding: 0.5rem 0 0.5rem 2rem;
             }}
             .rust-close-link {{
-                background-color: color(#000000 alpha(0.6));
-                color: #ffffff;
-                border-radius: 100rem;
                 font-family: var(--font-mono);
-                padding: 0.05rem 0.3rem 0.15rem 0.3rem;
-                line-height: 1rem;
+                font-weight: bold;
+                padding: 0rem 0.5rem;
                 text-decoration: none;
             }}
             .rust-help-link {{
