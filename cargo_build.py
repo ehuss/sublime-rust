@@ -513,7 +513,6 @@ def plugin_unloaded():
         # that it gets completely unloaded so that when it upgrades it will
         # load the new package. See
         # https://github.com/SublimeTextIssues/Core/issues/2207
-        package_name = __package__.split('.')[0]
         re_keys = [key for key in sys.modules if key.startswith(package_name + '.rust')]
         for key in re_keys:
             del sys.modules[key]
