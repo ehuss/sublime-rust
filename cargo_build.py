@@ -500,16 +500,6 @@ class RustAcceptSuggestedReplacement(sublime_plugin.TextCommand):
         self.view.replace(edit, region, replacement)
 
 
-def plugin_loaded():
-    from . import rust
-    if not hasattr(rust, 'UPGRADE_SENTINEL'):
-        # Upgrades performed before plugin_unloaded() was added do not
-        # properly unload.  The method for properly reloading the modules is
-        # complicated, so ask the user to restart.  This should only happen
-        # once, future upgrades should just work.
-        sublime.message_dialog('Rust Enhanced has been upgraded.\nPlease restart Sublime to complete the upgrade.')
-
-
 def plugin_unloaded():
     messages.clear_all_messages()
     try:

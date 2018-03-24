@@ -56,6 +56,7 @@ General settings (see [Settings](../README.md#settings)) for how messages are di
 | `rust_phantom_style` | `"normal"` | How to display inline messages.  Either `normal`, `popup`, or `none`. |
 | `rust_region_style` | `"outline"` | How to highlight messages.  Either `outline` or `none`. |
 | `rust_gutter_style` | `"shape"` | Type of icon to show in the gutter.  Either `shape`, `circle`, or `none`. |
+| `rust_message_theme` | `"clear"` | Style used for displaying inline messages.  Either `clear` or `solid`. |
 
 It also supports Sublime's build settings:
 
