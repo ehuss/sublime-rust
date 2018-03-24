@@ -9,7 +9,7 @@ POPUP_CSS = 'body { margin: 0.25em; }'
 
 def _help_link(code):
     if code:
-        return ' <a href="https://doc.rust-lang.org/error-index.html#%s">?</a>' % (
+        return ' <a href="https://doc.rust-lang.org/error-index.html#%s" class="rust-help-link">?</a>' % (
             code,)
     else:
         return ''
@@ -53,14 +53,20 @@ class ClearTheme(Theme):
             .rust-links {{
                 margin: 0.4rem 0rem;
             }}
-            a {{
-                text-decoration: none;
-                padding: 0.35rem 0.5rem 0.45rem 0.5rem;
-                position: relative;
-                font-weight: bold;
-            }}
             .rust-replacement {{
                 padding: 0.5rem 0 0.5rem 2rem;
+            }}
+            .rust-close-link {{
+                background-color: color(#000000 alpha(0.6));
+                color: #ffffff;
+                border-radius: 100rem;
+                font-family: var(--font-mono);
+                padding: 0.05rem 0.3rem 0.15rem 0.3rem;
+                line-height: 1rem;
+                text-decoration: none;
+            }}
+            .rust-help-link {{
+                font-weight: bold;
             }}
 
             {extra_css}
@@ -78,7 +84,7 @@ class ClearTheme(Theme):
 
     LINK_TMPL = util.multiline_fix("""
         <div class="rust-links">
-            <a href="{url}" class="rust-button">{text} {path}</a>
+            <a href="{url}" class="rust-link">{text} {path}</a>
         </div>
     """)
 
@@ -105,7 +111,7 @@ class ClearTheme(Theme):
             last_level = msg.level
             if i == 0:
                 # Only show close link on first message of a batch.
-                close_link = '<a class="close-link" href="hide">\xD7</a>'
+                close_link = '&nbsp;<a class="rust-close-link" href="hide">\xD7</a>'
             else:
                 close_link = ''
             msgs.append(self.MSG_TMPL.format(
@@ -170,17 +176,15 @@ class SolidTheme(Theme):
             .rust-help {{
                 background-color: #387580;
             }}
-
-            .close-link {{
+            .rust-close-link {{
                 background-color: color(#000000 alpha(0.6));
                 color: #ffffff;
                 border-radius: 100rem;
                 font-family: var(--font-mono);
-                padding: -0.05rem 0.2rem 0.05rem 0.2rem;
+                padding: 0.05rem 0.3rem 0.15rem 0.3rem;
                 line-height: 1rem;
                 text-decoration: none;
             }}
-
             .rust-button {{
                 background-color: color(#000000 alpha(0.6));
                 padding: 0.07rem 0.5rem;
@@ -188,9 +192,15 @@ class SolidTheme(Theme):
                 color: #ffffff;
                 text-decoration: none;
             }}
-
             .rust-replacement {{
                 display: inline;
+            }}
+            .rust-level-icon {{
+                width: 1rem;
+                height: 1rem;
+            }}
+            .rust-help-link {{
+                font-weight: bold;
             }}
 
             {extra_css}
@@ -203,7 +213,7 @@ class SolidTheme(Theme):
 
     PRIMARY_MSG_TMPL = util.multiline_fix("""
         <div class="rust-block rust-{level}">
-            {icon}&nbsp;{text}{help_link} <a class="close-link" href="hide">\xD7</a>
+            {icon}&nbsp;{text}{help_link}&nbsp;<a class="rust-close-link" href="hide">\xD7</a>
             {children}
             {links}
         </div>
@@ -235,7 +245,7 @@ class SolidTheme(Theme):
             if not path:
                 return ''
             else:
-                return '<img src="res://%s" width="16" height="16">' % (path,)
+                return '<img class="rust-level-icon" src="res://%s">' % (path,)
 
         if for_popup:
             extra_css = POPUP_CSS
