@@ -38,6 +38,11 @@ class MessageBatch:
         # dead if the user hits undo. We simply mark these as "hidden" to
         # ensure that `clear_messages` can erase any of these zombie regions.
         # See https://github.com/SublimeTextIssues/Core/issues/1121
+        # This is imperfect, since the user could do the following:
+        # 1) Build 2) Type some text 3) Clear Messages 4) Undo
+        # which will resurrect the regions without an easy way to remove them
+        # (user has to close and reopen the file).  I don't know of any good
+        # workarounds.
         for msg in self:
             view = window.find_open_file(msg.path)
             if view:
