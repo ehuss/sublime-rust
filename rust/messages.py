@@ -220,24 +220,6 @@ def _draw_region_highlights(view, batches):
                 msg.level = 'error'
             regions[msg.level].append((msg.region_key, region))
 
-    # Remove lower-level regions that are identical to higher-level regions.
-    # Sublime is a little odd about how it decides which one takes precedence
-    # (it seems to be sensitive to the order and the key name).
-    def filter_out(to_filter, to_check):
-        def check_in(key_region):
-            for _, r in regions[to_check]:
-                print('compare %r to %r' % (r, key_region))
-                if r == key_region[1]:
-                    return False
-            return True
-        regions[to_filter] = list(filter(check_in, regions[to_filter]))
-    filter_out('help', 'note')
-    filter_out('help', 'warning')
-    filter_out('help', 'error')
-    filter_out('note', 'warning')
-    filter_out('note', 'error')
-    filter_out('warning', 'error')
-
     # Do this in reverse order so that errors show on-top.
     for level in ['help', 'note', 'warning', 'error']:
         # Use scope names from color themes to drive the color of the outline.
