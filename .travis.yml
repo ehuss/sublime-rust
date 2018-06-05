@@ -1,6 +1,6 @@
 # Avoid building twice with bors (no need to test on master after it has
 # already run on the staging branch).
-if: branch = staging OR type = pull_request
+#if: branch = staging OR type = pull_request
 
 env:
   global:
@@ -17,11 +17,6 @@ rust:
   - stable
   - beta
   - nightly
-
-matrix:
-  allow_failures:
-    - rust: beta
-    - rust: nightly
 
 # enable gui, see https://docs.travis-ci.com/user/gui-and-headless-browsers
 services:
