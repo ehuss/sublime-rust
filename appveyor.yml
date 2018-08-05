@@ -8,6 +8,10 @@ environment:
         - RUST_VERSION: beta
         - RUST_VERSION: nightly
 
+matrix:
+    allow_failures:
+        - RUST_VERSION: beta
+        - RUST_VERSION: nightly
 
 install:
     - ps: appveyor DownloadFile "https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/appveyor.ps1"
