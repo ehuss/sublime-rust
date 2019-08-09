@@ -1,6 +1,6 @@
 # Avoid building twice with bors (no need to test on master after it has
 # already run on the staging branch).
-if: branch = staging OR type = pull_request
+# if: branch = staging OR type = pull_request
 
 env:
   global:
@@ -23,15 +23,12 @@ matrix:
     - rust: beta
     - rust: nightly
 
+# enable gui, see https://docs.travis-ci.com/user/gui-and-headless-browsers
+services:
+  - xvfb
+
 before_install:
   - curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/master/sbin/travis.sh
-
-  # enable gui, see https://docs.travis-ci.com/user/gui-and-headless-browsers
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      export DISPLAY=:99.0;
-      sh -e /etc/init.d/xvfb start;
-    fi
-
 
 install:
   # Install Sublime and Sublime Unittesting.
