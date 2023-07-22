@@ -13,19 +13,103 @@ jobs:
     timeout-minutes: 20 # default is 6 hours!
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest,]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable]
-        include:
-          - os: ubuntu-latest
-            rust: beta
-          - os: ubuntu-latest
-            rust: nightly
+        # include:
+        #   - os: ubuntu-latest
+        #     rust: beta
+        #   - os: ubuntu-latest
+        #     rust: nightly
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
       - run: bash ci/install-rust.sh ${{ matrix.rust }}
-      - uses: SublimeText/UnitTesting/actions/setup@v1
-        with:
-          package-name: Rust Enhanced
-      - uses: SublimeText/UnitTesting/actions/run-syntax-tests@v1
-      - uses: SublimeText/UnitTesting/actions/run-tests@v1
+      # - uses: SublimeText/UnitTesting/actions/setup@v1
+      #   with:
+      #     package-name: Rust Enhanced
+      - name: Set environmental variables
+        run: |
+          echo "SUBLIME_TEXT_VERSION=4" >> $GITHUB_ENV
+          echo "SUBLIME_TEXT_ARCH=x64" >> $GITHUB_ENV
+        shell: bash
+      - name: Setup SUBLIME_TEXT_PACKAGES
+        run: |
+          STP="$HOME/Library/Application Support/Sublime Text/Packages"
+          echo "SUBLIME_TEXT_PACKAGES=$STP" >> $GITHUB_ENV
+        shell: bash
+      - run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+      - if: runner.os == 'Linux' || runner.os == 'macOS'
+        run: |
+          bash scripts/install_sublime_text.sh
+        shell: bash
+      - run: |
+          # Disable warnings about detached HEAD
+          # https://stackoverflow.com/questions/36794501
+          git config --global advice.detachedHead false
+
+          # block sublime text website ip
+          bash scripts/block_ip.sh
+        shell: bash
+      - run: |
+          REPO="$GITHUB_REPOSITORY"
+          if [ "true" = "true" ]; then
+            cd "./"
+            REMOTEURL=$(git config --get remote.origin.url || true)
+            cd -
+            if [[ "$REMOTEURL" =~ ^https://github.com/ ]]; then
+              REPO=${REMOTEURL#https://github.com/}
+              REPO=${REPO%\.git}
+            fi
+          fi
+          PACKAGE_FROM_INPUTS="Rust Enhanced"
+          PACKAGE="${PACKAGE_FROM_INPUTS:-${REPO#*/}}"
+
+          echo "PACKAGE=$PACKAGE" >> $GITHUB_ENV
+        shell: bash
+      - run: |
+          . scripts/utils.sh
+
+          # Copy plugin files to Packages/<Package> folder if files are checked out.
+          if [ "true" = "true" ]; then
+            cd "./"
+            if [ -d "./.git" ] && [ ! -d "$SUBLIME_TEXT_PACKAGES/$PACKAGE" ]; then
+                # symlink does not play well with coverage
+                echo "copy the package to sublime package directory"
+                mkdir -p "$SUBLIME_TEXT_PACKAGES/$PACKAGE"
+                cp -r ./ "$SUBLIME_TEXT_PACKAGES/$PACKAGE"
+                # detached head will crash package control
+                rm -rf "$SUBLIME_TEXT_PACKAGES/$PACKAGE/.git"
+            fi
+            cd -
+          fi
+          if [ "true" = "true" ]; then
+              InstallPackage "UnitTesting" "https://github.com/SublimeText/UnitTesting" ""
+          fi
+          if [ "true" = "true" ]; then
+              InstallPackage "coverage" "https://github.com/codexns/sublime-coverage" ""
+          fi
+
+          while read -r x; do
+              if [[ "$x" =~ ^(.*):(.*)/([^@]*)@?(.*)$ ]]; then
+                  PKG="${BASH_REMATCH[1]}"
+                  USER="${BASH_REMATCH[2]}"
+                  REPO="${BASH_REMATCH[3]}"
+                  SHA="${BASH_REMATCH[4]}"
+              elif [[ "$x" =~ ^(.*)/([^@]*)@?(.*)$ ]]; then
+                  PKG="${BASH_REMATCH[2]}"
+                  USER="${BASH_REMATCH[1]}"
+                  REPO="${BASH_REMATCH[2]}"
+                  SHA="${BASH_REMATCH[3]}"
+              else
+                continue
+              fi
+              InstallPackage "$PKG" "https://github.com/$USER/$REPO" "$SHA"
+          done <<< ""
+        shell: bash
+      - if: (runner.os == 'Linux' || runner.os == 'macOS')
+        run: |
+          bash scripts/install_package_control.sh
+        shell: bash
