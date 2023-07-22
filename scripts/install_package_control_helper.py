@@ -35,7 +35,7 @@ def plugin_loaded():
             f.write(message + "\n")
 
     append("plugin_loaded")
-    append('pc_settings=%r' % (pc_settings.to_dict(),))
+    # append('pc_settings=%r' % (pc_settings.to_dict(),))
 
     stdout = sys.stdout
     stderr = sys.stderr
@@ -46,6 +46,7 @@ def plugin_loaded():
 
     sys.stdout = StdioSplitter(stdout, stream)
     sys.stderr = StdioSplitter(stderr, stream)
+    append("splitters configured")
 
     def kill_subl(restart=False):
         append('kill_sub(restart=%s)' % (restart,))
@@ -77,6 +78,7 @@ def plugin_loaded():
             touch("bootstrapped")
             kill_subl(True)
         else:
+            append('not bootstrapped')
             sublime.set_timeout(check_bootstrap, 5000)
 
     def check_dependencies():
