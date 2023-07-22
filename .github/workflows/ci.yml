@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 20 # default is 6 hours!
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
         rust: [stable]
         include:
           - os: ubuntu-latest
