@@ -2,6 +2,23 @@ import sublime
 import sys
 import subprocess
 import os
+import logging
+
+class StdioSplitter:
+    def __init__(self, io, stream):
+        self.io = io
+        self.stream = stream
+
+    def write(self, data):
+        self.io.write(data)
+        self.stream.write(data)
+
+    def writeln(self, s):
+        self.write(s + "\n")
+
+    def flush(self):
+        self.io.flush()
+        self.stream.flush()
 
 
 def plugin_loaded():
@@ -18,6 +35,17 @@ def plugin_loaded():
             f.write(message + "\n")
 
     append("plugin_loaded")
+    append('pc_settings=%r' % (pc_settings.to_dict(),))
+
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+    stream = open(logfile, "a")
+    handler = logging.StreamHandler(stream)
+    logging.root.addHandler(handler)
+
+    sys.stdout = StdioSplitter(stdout, stream)
+    sys.stderr = StdioSplitter(stderr, stream)
 
     def kill_subl(restart=False):
         append('kill_sub(restart=%s)' % (restart,))
