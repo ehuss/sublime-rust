@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
-      - run: bash ci/install-rust.sh ${{ matrix.rust }}
+      # - run: bash ci/install-rust.sh ${{ matrix.rust }}
       # - uses: SublimeText/UnitTesting/actions/setup@v1
       #   with:
       #     package-name: Rust Enhanced

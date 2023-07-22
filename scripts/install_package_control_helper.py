@@ -13,7 +13,14 @@ def plugin_loaded():
         "0_install_package_control_helper",
         "log")
 
+    def append(message):
+        with open(logfile, "a") as f:
+            f.write(message + "\n")
+
+    append("plugin_loaded")
+
     def kill_subl(restart=False):
+        append('kill_sub(restart=%s)' % (restart,))
         if sublime.platform() == "osx":
             cmd = "sleep 1; pkill [Ss]ubl; pkill plugin_host; sleep 1; "
             if restart:
@@ -37,6 +44,7 @@ def plugin_loaded():
         open(f, 'a').close()
 
     def check_bootstrap():
+        append('check_bootstrap')
         if pc_settings.get("bootstrapped", False):
             touch("bootstrapped")
             kill_subl(True)
@@ -44,9 +52,12 @@ def plugin_loaded():
             sublime.set_timeout(check_bootstrap, 5000)
 
     def check_dependencies():
+        append('check_dependencies')
         if 'Package Control' in sys.modules:
+            append('found package control')
             package_control = sys.modules['Package Control'].package_control
         else:
+            append('package control not yet found, try again')
             sublime.set_timeout(check_dependencies, 5000)
             return
 
@@ -56,9 +67,11 @@ def plugin_loaded():
         class myPackageCleanup(package_control.package_cleanup.PackageCleanup):
 
             def finish(self, installed_packages, found_packages, found_dependencies):
+                append('finish installed=%r found=%r found_deps=%r' % (installed_packages, found_packages, found_dependencies))
                 missing_dependencies = required_dependencies - set(found_dependencies)
 
                 if len(missing_dependencies) == 0:
+                    append('success')
                     touch("success")
                     kill_subl()
                 else:

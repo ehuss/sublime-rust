@@ -55,6 +55,7 @@ if [ ! -f "$STP/User/Package Control.sublime-settings" ]; then
 fi
 
 PCH_PATH="$STP/0_install_package_control_helper"
+echo "PCH_PATH=$PCH_PATH"
 
 if [ ! -d "$PCH_PATH" ]; then
     mkdir -p "$PCH_PATH"
@@ -72,6 +73,10 @@ for i in {1..3}; do
         printf "."
         sleep 5
     done
+
+    if [ -f "$PCH_PATH/log" ]; then
+        cat "$PCH_PATH/log"
+    fi
 
     pkill "[Ss]ubl" || true
     pkill 'plugin_host' || true
